@@ -15,21 +15,19 @@ class ControllerNode(Node):
         self.state = "no movement"
 
     def timer_callback(self):
-        # self.get_logger().info(f'controller @ {self.period*self.i}s')
-        if self.i % 20 == 0:
+        if self.i % 20 < 5:
             self.state = "no movement"
-        elif self.i % 15 == 0 and self.i % 2 == 0:
+        elif self.i % 20 < 10:
             self.state = "full movement"
-        elif self.i % 10 == 0:
+        elif self.i % 20 < 15:
             self.state = "directional only"
-        elif self.i % 5 == 0:
+        elif self.i % 20 < 20:
             self.state = "angular only"
         
         msg = String(data=self.state)
         self.publisher.publish(msg)
-        self.get_logger().info(f'controller: {msg}')
+        self.get_logger().info(f'controller: {self.state}')
         self.i += 1
-
 
 def main(args=None):
     rclpy.init(args=args)

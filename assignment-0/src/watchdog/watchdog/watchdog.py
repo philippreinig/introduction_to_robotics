@@ -47,7 +47,7 @@ class WatchdogNode(Node):
     def controller_callback(self, msg):
         # self.get_logger().info('Controller callback called:', msg)
         self.controller_state = msg.data
-        self.get_logger().warn(f'Watchdog: The controller says I should {msg.data} the turtle ...')
+        self.get_logger().warn(f'Watchdog: Reveived state update from controller: {msg.data}')
 
 
 
