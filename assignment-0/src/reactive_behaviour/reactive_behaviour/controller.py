@@ -11,16 +11,17 @@ VELOCITY = 0.1
 COLLISION_DISTANCE = 0.3
 
 class VelocityController(Node):
-
     def __init__(self):
         super().__init__("velocity_controller")
+        self.declare_parameter("rand_turn_prob")
+        self.random_spin_probability = self.get_parameter("rand_turn_prob").get_parameter_value().double_value
         self.publisher = self.create_publisher(Twist, 'cmd_vel', 10)
         self.current_message = None
         self.front_view = None
-        self.random_spin_probability = 0.02 # ToDo: Pass random_spin_prob via Command line argument
+        #mself.random_spin_probability = 0.02 # ToDo: Pass random_spin_prob via Command line argument
         self.create_subscription(LaserScan, 'scan', self.laser_cb, rclpy.qos.qos_profile_sensor_data)
         self.create_timer(0.1, self.timer_cb)
-        self.get_logger().info("Controller node started Successfully")
+        self.get_logger().info("Controller node started Successfully with random_spin_probability: {}".format(self.random_spin_probability))
         
     # Returns new angle for robot, with its collision condition being false
     def get_random_angle(self):
