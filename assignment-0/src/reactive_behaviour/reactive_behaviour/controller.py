@@ -12,7 +12,8 @@ COLLISION_DISTANCE = 0.3
 
 class VelocityController(Node):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
+        super().__init__("velocity_controller")
         self.publisher = self.create_publisher(Twist, 'cmd_vel', 10)
         self.current_message = None
         self.front_view = None

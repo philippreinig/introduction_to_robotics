@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
-from email.policy import default
 import os
-from random import random
 import yaml
 
 from launch import LaunchDescription
@@ -28,7 +26,7 @@ def controller_spawning(context, *args, **kwargs):
            namespace=robot['name'],
            parameters=[
            {'use_sim_time': use_sim_time}], # , {'random_turn_p': random_turn_p}
-           output='screen'
+           output='screen',
         ))
         controllers.append(Node(
            package='reactive_behaviour',
