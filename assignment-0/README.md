@@ -43,4 +43,4 @@ In this assignment we want to program a reactive behaviour, that controls the ro
 - Explore as much of the reachable area as possible (think of a cleaning robot)
 - Don't crash ;)
 
-=> Use `ros2 launch reactive_behaviour robot.launch.py n_robots:=1 rand_turn_prob="#VALUE"` to specify probability of a random turn within one iteration (leaving out this argument sets the probability to 0)
+=> Use `ros2 launch reactive_behaviour robot.launch.py n_robots:=1 rand_turn_prob:="#VALUE"` to specify probability of a random turn within one iteration (leaving out this argument sets the probability to 0)
