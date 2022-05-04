@@ -13,6 +13,7 @@ from rclpy.node import Node
 from nav_msgs.msg import OccupancyGrid
 from nav_msgs.srv import GetMap
 from sensor_msgs.msg import LaserScan
+from std_msgs.msg import String
 
 def yaw_from_orientation(orientation):
     rot = PyKDL.Rotation.Quaternion(orientation.x, orientation.y, orientation.z, orientation.w)
@@ -40,14 +41,17 @@ class ScoringNode(Node):
         self.create_subscription(OccupancyGrid, 'map', self.map_cb, qos_profile)
         self.map_publisher = self.create_publisher(OccupancyGrid, 'score_grid', 10)
         self.scan = None
-        self.create_subscription(LaserScan, 'scan', self.scan_cb, rclpy.qos.qos_profile_sensor_data)
-        self.create_timer(0.5, self.timer_cb)
         self.map_client = self.create_client(GetMap, 'map_server/map')
         self.map_client.wait_for_service()
         future = self.map_client.call_async(GetMap.Request())
         rclpy.spin_until_future_complete(self, future)
         self.score_image = None
         self.update_map(future.result().map)
+        self.create_subscription(LaserScan, 'scan', self.scan_cb, rclpy.qos.qos_profile_sensor_data)
+        self.t = 0
+        self.create_timer(0.5, self.timer_cb)
+        self.status_pub = self.create_publisher(String, 'status', 10)
+        self.status_pub.publish(String(data='ready'))
         self.get_logger().info('init done')
         
     def scan_cb(self, msg):
@@ -112,9 +116,8 @@ class ScoringNode(Node):
         else:
             self.get_logger().info('no map received yet')
         if self.score_image is not None:
-            self.get_logger().info(f'score: {np.sum(self.score_image)/10_000}')
-        
-
+            self.get_logger().info(f'score: {np.sum(self.score_image)/10_000} at t={0.5*self.t}s')
+        self.t+=1
    
 def main():
     rclpy.init()
