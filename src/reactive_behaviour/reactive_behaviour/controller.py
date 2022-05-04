@@ -54,7 +54,7 @@ class VelocityController(Node):
         self.front_view = msg.ranges[360-ANGLE_HALF:360]
         self.front_view += msg.ranges[0:ANGLE_HALF]
         for i in range(0, len(self.front_view)):
-            if self.front_view[i] == 0: self.front_view[i] == nan
+            if self.front_view[i] == 0: self.front_view[i] = nan
 
 
 
