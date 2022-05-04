@@ -1,4 +1,5 @@
 from cmath import pi
+from math import nan
 from random import randint, random
 import rclpy
 from rclpy.node import Node
@@ -52,6 +53,8 @@ class VelocityController(Node):
         self.current_message = msg.ranges
         self.front_view = msg.ranges[360-ANGLE_HALF:360]
         self.front_view += msg.ranges[0:ANGLE_HALF]
+        for i in range(0, len(self.front_view)):
+            if self.front_view[i] == 0: self.front_view[i] == nan
 
 
 
