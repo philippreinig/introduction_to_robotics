@@ -12,6 +12,7 @@ class LocatorNode(Node):
     def __init__(self):
         super().__init__('locator_node')
         self.anchor_ranges = []
+        self.current_pos = np.array([1.1,1.1,0.0]) # x^
         self.create_subscription(Range, 'range', self.range_cb, 10)
         self.position_pub = self.create_publisher(PointStamped, 'position', 10)
         self.initialized = False
@@ -41,15 +42,11 @@ class LocatorNode(Node):
     def calculate_position(self):
         if not len(self.anchor_ranges):
             return 0.0, 0.0, 0.0
-        self.get_logger().info("Anchor Ranges: {}".format(self.anchor_ranges))
+        # self.get_logger().info("Anchor Ranges: {}".format(self.anchor_ranges))
 
         # YOUR CODE GOES HERE:
 
         # Array: [(msg.range, msg.Point)]
-
-
-        aprox = np.array([1.33213,1.432,1.32167]) # x^
-
 
         # Residuals: 
         residual = np.array([])
@@ -58,7 +55,7 @@ class LocatorNode(Node):
             # self.get_logger().error("Anchor.anchor: ".format(print(dir(anchor.anchor))))
             # self.get_logger().info("anchor.anchor.x/y/z: x: {}, y: {}: z: {}".format(anchor.anchor.x, anchor.anchor.y, anchor.anchor.z))
             pos_anchor = np.array([anchor.anchor.x, anchor.anchor.y, anchor.anchor.z])
-            temp = anchor.range - np.linalg.norm(pos_anchor - aprox)
+            temp = anchor.range - np.linalg.norm(pos_anchor - self.current_pos)
             residual = np.append(residual, temp)
 
 
@@ -68,26 +65,29 @@ class LocatorNode(Node):
         for anchor in self.anchor_ranges:
             temp = np.array([])
             pos_anchor = np.array([anchor.anchor.x, anchor.anchor.y, anchor.anchor.z])
-            denom = np.linalg.norm(aprox - pos_anchor)
-            if(denom == 0): self.get_logger().error("Zero division. Stuff is scuffed here")
-            for a,b in zip(aprox, pos_anchor):
+            denom = np.linalg.norm(self.current_pos - pos_anchor)
+            if(denom == 0): 
+                self.get_logger().error("Zero division. Stuff is scuffed here")
+            for a,b in zip(self.current_pos, pos_anchor):
                 temp = np.append(temp, (a-b)/denom)
-            self.get_logger().info("temp: {}".format(temp))
+            # self.get_logger().info("temp: {}".format(temp))
             res_gradient = np.append(res_gradient, temp, axis=0)
 
         res_gradient = res_gradient.reshape(len(self.anchor_ranges), 3)
 
-        self.get_logger().error("res_gradiant: {}".format(res_gradient))
+        # self.get_logger().error("res_gradiant: {}".format(res_gradient))
         
         # Pseudo-inverse of residual gradient
         res_gradient_pseudo_inv = np.linalg.pinv(res_gradient)
-        self.get_logger().error("res_gradiant_pseudo_inv: {}".format(res_gradient_pseudo_inv))
+        # self.get_logger().error("res_gradiant_pseudo_inv: {}".format(res_gradient_pseudo_inv))
 
-        sol = aprox - (res_gradient_pseudo_inv @ residual)
+        sol = self.current_pos - (res_gradient_pseudo_inv @ residual)
 
-        self.get_logger().error("sol: {}".format(sol))
+        self.get_logger().error("sol: {}; Using approx. Position: {}".format(sol, self.current_pos))
 
-        return 1.0, 0.0, 0.0
+        self.current_pos = self.current_pos - sol/2
+
+        return self.current_pos
 
 
 
