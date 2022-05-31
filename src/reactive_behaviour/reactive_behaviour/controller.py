@@ -10,6 +10,7 @@ from sensor_msgs.msg import LaserScan
 ANGLE_HALF = 25
 VELOCITY = 0.1
 COLLISION_DISTANCE = 0.3
+DEBUG = True
 
 
 
@@ -35,21 +36,22 @@ class VelocityController(Node):
         return (2 * pi) / (360/rand)
 
     def timer_cb(self):
-        msg = Twist()
-        v = 0.0
-        if self.front_view is not None:
-            # If About to crash -> Change Angle to another random angle (If this angle's collision condition is false)
-            if min(self.front_view) < COLLISION_DISTANCE:
-                msg.angular.z = self.get_random_angle()
-            elif self.random_spin_probability != 0.0 and random() < self.random_spin_probability:
-                self.get_logger().info("I've made a random turn")
-                msg.angular.z = self.get_random_angle()
-            else:
-                v = VELOCITY
+        if not DEBUG:
+            msg = Twist()
+            v = 0.0
+            if self.front_view is not None:
+                # If About to crash -> Change Angle to another random angle (If this angle's collision condition is false)
+                if min(self.front_view) < COLLISION_DISTANCE:
+                    msg.angular.z = self.get_random_angle()
+                elif self.random_spin_probability != 0.0 and random() < self.random_spin_probability:
+                    self.get_logger().info("I've made a random turn")
+                    msg.angular.z = self.get_random_angle()
+                else:
+                    v = VELOCITY
 
-        msg.linear.x = v
+            msg.linear.x = v
 
-        self.publisher.publish(msg)
+            self.publisher.publish(msg)
     
     def laser_cb(self, msg):
         # Save range data in class attribute & save front angles in specified array
