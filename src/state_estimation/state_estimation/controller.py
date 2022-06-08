@@ -1,4 +1,4 @@
-from cmath import pi
+from cmath import nan, pi
 from math import atan2
 from random import randint, random
 import rclpy
@@ -9,6 +9,8 @@ from sensor_msgs.msg import LaserScan
 
 COLLISION_DISTANCE = 0.3
 VELOCITY = 0.1
+ANGLE_HALF = 25
+DEBUG = False
 
 class VelocityController(Node):
 
@@ -18,6 +20,8 @@ class VelocityController(Node):
         self.forward_distance = 0
         self.goal = None
         self.position = None
+        self.front_view = None
+        self.target_angle = None
         self.create_subscription(LaserScan, 'scan', self.laser_cb, rclpy.qos.qos_profile_sensor_data)
         self.create_subscription(PoseStamped, 'nav/goal', self.goal_cb, 10)
         self.create_subscription(PointStamped, 'position', self.position_cb, 10)
@@ -26,38 +30,35 @@ class VelocityController(Node):
         self.recent_positions = list()
         
     def remove_old_positions(self):
-        while len(self.recent_positions) > 10:
+        while len(self.recent_positions) > 4:
             del self.recent_positions[0] # Delete oldest entry
 
     def timer_cb(self):
-        msg = Twist()
-        if self.position is not None and self.goal is not None:
-            # Calculate Delta Position (Postion -> Goal):
-            # If delta_expected gets bigger when moving: Wrong direction 
-            self.remove_old_positions()
-            facing_angle = 0
-            if len(self.recent_positions)>=5:
-                oldest = self.recent_positions[0]
-                newest = self.recent_positions[-1]
-                # Using trigonometry to get current facing (oldest and newest pos):
-                facing_radian = pi + atan2(newest[1]-oldest[1], newest[0]-oldest[0]) #(y,x) Value Range: [-pi, +pi] --> [0, 2pi]
-                facing_angle = (facing_radian / (2*pi))*360
-                self.get_logger().info('Facing direction at the moment: {}'.format(facing_angle))
-                # Using trigonometry to get target angle (newest pos and goal):          
-                target_radian = pi + atan2(self.goal[1]-newest[1], self.goal[0]-newest[0]) #(y,x) Value Range: [-pi, +pi] --> [0, 2pi]
-                target_angle = (target_radian / (2*pi))*360
-                self.get_logger().info('Angle to goal from current pos: {}; Goal Coordinates: {}; Current Coordinates: {}'.format(target_angle, self.goal, self.recent_positions[-1]))
-                turn_angle = target_radian - facing_radian
-                turn_angle /=10
-                msg.angular.z = turn_angle
-                self.recent_positions = list()
-        msg.linear.x = 0.1
-        self.publisher.publish(msg)
-        #x = self.forward_distance - 0.3
-        #x = x if x < 0.1 else 0.1
-        #x = x if x >= 0 else 0.0
-        # msg.linear.x = - 1
-        self.publisher.publish(msg)
+        if not DEBUG:
+            msg = Twist()
+            if self.position is not None and self.goal is not None:
+                # Calculate Delta Position (Postion -> Goal):
+                # If delta_expected gets bigger when moving: Wrong direction
+                msg.linear.x = 0.1
+                self.remove_old_positions()
+                if len(self.recent_positions)>=3:
+                    oldest = self.recent_positions[0]
+                    newest = self.recent_positions[-1]
+                    # Using trigonometry to get current facing (oldest and newest pos):
+                    facing_radian = pi + atan2(newest[1]-oldest[1], newest[0]-oldest[0]) #(y,x) Value Range: [-pi, +pi] --> [0, 2pi]
+                    # self.get_logger().info('Facing direction at the moment: {}'.format(facing_angle))
+                    # Using trigonometry to get target angle (newest pos and goal):          
+                    target_radian = pi + atan2(self.goal[1]-newest[1], self.goal[0]-newest[0]) #(y,x) Value Range: [-pi, +pi] --> [0, 2pi]
+                    self.get_logger().info('AngleToGoal: {}; Calc.Angle {}'.format(target_radian, facing_radian))
+                    turn_angle = target_radian - facing_radian
+                    # self.target_angle = target_radian
+                    msg.angular.z = turn_angle
+            #x = self.forward_distance - 0.3
+            #x = x if x < 0.1 else 0.1
+            #x = x if x >= 0 else 0.0
+            # msg.linear.x = - 1
+            msg = self.collision_detection_behavior(msg)
+            self.publisher.publish(msg)
 
 
     def get_random_angle(self):
@@ -67,20 +68,13 @@ class VelocityController(Node):
         return (2 * pi) / (360/rand)
 
 
-    def random_behavior(self):   
-        msg = Twist()
-        v = 0.0
+    def collision_detection_behavior(self, msg):   
         if self.front_view is not None:
             # If About to crash -> Change Angle to another random angle (If this angle's collision condition is false)
             if min(self.front_view) < COLLISION_DISTANCE:
                 msg.angular.z = self.get_random_angle()
-            elif self.random_spin_probability != 0.0 and random() < self.random_spin_probability:
-                self.get_logger().info("I've made a random turn")
-                msg.angular.z = self.get_random_angle()
-            else:
-                v = VELOCITY
-        msg.linear.x = v
-        self.publisher.publish(msg)
+                self.recent_positions = list()
+        return msg
 
 
     def goal_cb(self, msg):
@@ -90,7 +84,12 @@ class VelocityController(Node):
             self.goal = goal
     
     def laser_cb(self, msg):
-        self.forward_distance = msg.ranges[0]
+        # Save range data in class attribute & save front angles in specified array
+        self.current_message = msg.ranges
+        self.front_view = msg.ranges[360-ANGLE_HALF:360]
+        self.front_view += msg.ranges[0:ANGLE_HALF]
+        for i in range(0, len(self.front_view)):
+            if self.front_view[i] == 0: self.front_view[i] = nan
         
     def position_cb(self, msg):
         self.position = msg.point.x, msg.point.y

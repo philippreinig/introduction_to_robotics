@@ -41,7 +41,7 @@ class LocatorNode(Node):
     
 
     def check_sol(self, x):
-        self.get_logger().info('Checking range Meassurements')
+        # self.get_logger().info('Checking range Meassurements')
         for anchor in self.anchor_ranges:
             pos_anchor = np.array([anchor.anchor.x, anchor.anchor.y, anchor.anchor.z])
             estimate = np.linalg.norm(pos_anchor - x)
@@ -69,7 +69,7 @@ class LocatorNode(Node):
     
             pos_anchor = np.array([anchor.anchor.x, anchor.anchor.y, anchor.anchor.z])
             anchor_residual = anchor.range - np.linalg.norm(pos_anchor - x_cfx)
-            # self.get_logger().info("Residual for anchor [{}]: {}".format(anchor_counter, anchor_residual))
+            #self.get_logger().info("Residual for anchor [{}]: {}".format(anchor_counter, anchor_residual))
             residual = np.append(residual, anchor_residual)
             anchor_counter += 1
 
@@ -84,11 +84,11 @@ class LocatorNode(Node):
             denom = np.linalg.norm(x_cfx - pos_anchor)
             #self.get_logger().info("denom: {}".format(denom))
             gradient_row = np.array([])
-            if(denom == 0): 
+            if denom == 0: 
                 self.get_logger().error("Zero division. Stuff is scuffed here")
             else:
                 for a,b in zip(x_cfx, pos_anchor):
-                    nom = a-b
+                    nom = -(a-b)
                     #self.get_logger().info("Nominator (a-b): {} ({} - {})".format(nom, a, b))
                     gradient_row = np.append(gradient_row, nom/denom)
                     #self.get_logger().info("Division result: {}".format(nom/denom))
@@ -108,10 +108,9 @@ class LocatorNode(Node):
 
         #self.get_logger().info("result: {}".format(sol))
 
-        self.get_logger().error("sol: {}; Using approx. Position: {}, diff: {}".format(sol, x_cfx, sol-x_cfx))
+        #self.get_logger().error("sol: {}; Using approx. Position: {}, diff: {}".format(sol, x_cfx, sol-x_cfx))
 
-        self.current_pos = (self.current_pos - sol/2) # Big Scuffed
-        self.current_pos[2] = 0.0
+        self.current_pos = sol # Big Scuffed
         self.check_sol(self.current_pos)
         return self.current_pos
 
